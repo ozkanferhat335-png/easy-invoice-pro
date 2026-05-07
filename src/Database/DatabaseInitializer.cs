@@ -323,6 +323,101 @@ CREATE INDEX IF NOT EXISTS IX_AuditLogs_CompanyId ON AuditLogs(CompanyId);
 CREATE INDEX IF NOT EXISTS IX_AuditLogs_ActionDate ON AuditLogs(ActionDate);
 ");
 
+
+            // ==================== BANK CONNECTIONS TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS BankConnections (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CompanyId INTEGER NOT NULL,
+    BankName TEXT NOT NULL,
+    ApiConfigEncrypted TEXT NOT NULL,
+    Active INTEGER DEFAULT 1,
+    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (CompanyId) REFERENCES Companies(Id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS IX_BankConnections_CompanyId ON BankConnections(CompanyId);
+");
+
+            // ==================== BANK ACCOUNTS TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS BankAccounts (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CompanyId INTEGER NOT NULL,
+    Iban TEXT NOT NULL,
+    Currency TEXT NOT NULL,
+    AccountType TEXT,
+    IsActive INTEGER DEFAULT 1,
+    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (CompanyId) REFERENCES Companies(Id) ON DELETE CASCADE,
+    UNIQUE(CompanyId, Iban)
+);
+CREATE INDEX IF NOT EXISTS IX_BankAccounts_CompanyId ON BankAccounts(CompanyId);
+");
+
+            // ==================== BANK TRANSACTIONS TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS BankTransactions (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    AccountId INTEGER NOT NULL,
+    TrxDate DATETIME NOT NULL,
+    Amount DECIMAL NOT NULL,
+    Currency TEXT NOT NULL,
+    Description TEXT,
+    RefNo TEXT,
+    UniqueHash TEXT NOT NULL UNIQUE,
+    IsAccounted INTEGER DEFAULT 0,
+    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (AccountId) REFERENCES BankAccounts(Id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS IX_BankTransactions_AccountId ON BankTransactions(AccountId);
+CREATE INDEX IF NOT EXISTS IX_BankTransactions_TrxDate ON BankTransactions(TrxDate);
+");
+
+            // ==================== TRANSFER ORDERS TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS TransferOrders (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CompanyId INTEGER NOT NULL,
+    Type INTEGER NOT NULL,
+    Amount DECIMAL NOT NULL,
+    Currency TEXT NOT NULL,
+    Status INTEGER NOT NULL,
+    BankRefNo TEXT,
+    IdempotencyKey TEXT NOT NULL UNIQUE,
+    ReceiverIban TEXT,
+    Description TEXT,
+    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (CompanyId) REFERENCES Companies(Id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS IX_TransferOrders_CompanyId ON TransferOrders(CompanyId);
+");
+
+            // ==================== EXCHANGE RATES TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS ExchangeRates (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    BankName TEXT NOT NULL,
+    CurrencyPair TEXT NOT NULL,
+    Rate DECIMAL NOT NULL,
+    RateTime DATETIME NOT NULL
+);
+CREATE INDEX IF NOT EXISTS IX_ExchangeRates_PairTime ON ExchangeRates(CurrencyPair, RateTime);
+");
+
+            // ==================== AUDIT LOGS TABLE ====================
+            sb.Append(@"
+CREATE TABLE IF NOT EXISTS AuditLogs (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserId INTEGER,
+    Action TEXT NOT NULL,
+    Entity TEXT NOT NULL,
+    EntityId TEXT,
+    Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    DetailMasked TEXT
+);
+CREATE INDEX IF NOT EXISTS IX_AuditLogs_Timestamp ON AuditLogs(Timestamp);
+");
+
             return sb.ToString();
         }
     }
